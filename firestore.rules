@@ -1,0 +1,121 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "datavaultguru@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidLead(data) {
+      return hasOnlyAllowedFields(['name', 'email', 'businessType', 'problem', 'createdAt', 'status']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.businessType is string && data.businessType.size() < 100 &&
+             data.problem is string && data.problem.size() < 2000 &&
+             data.createdAt is string &&
+             data.status in ['new', 'contacted', 'closed'];
+    }
+    
+    function isValidPost(data) {
+      return hasOnlyAllowedFields(['title', 'slug', 'content', 'excerpt', 'authorId', 'published', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.slug is string && data.slug.size() > 0 && data.slug.size() < 200 &&
+             data.content is string && data.content.size() < 50000 &&
+             data.excerpt is string && data.excerpt.size() < 1000 &&
+             data.authorId is string && data.authorId.size() < 100 &&
+             data.published is bool &&
+             data.createdAt is string &&
+             data.updatedAt is string;
+    }
+    
+    function isValidPortfolioItem(data) {
+      return hasOnlyAllowedFields(['title', 'slug', 'clientProblem', 'dataSolution', 'businessImpact', 'imageUrl', 'authorId', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.slug is string && data.slug.size() > 0 && data.slug.size() < 200 &&
+             data.clientProblem is string && data.clientProblem.size() < 5000 &&
+             data.dataSolution is string && data.dataSolution.size() < 5000 &&
+             data.businessImpact is string && data.businessImpact.size() < 5000 &&
+             data.imageUrl is string && data.imageUrl.size() < 1000 &&
+             data.authorId is string && data.authorId.size() < 100 &&
+             data.createdAt is string;
+    }
+    
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['email', 'role', 'createdAt']) &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /leads/{leadId} {
+      // Anyone can submit a lead (contact form)
+      allow create: if isValidLead(request.resource.data) && request.resource.data.status == 'new';
+      // Only admins can read, update, delete leads
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin() && isValidLead(request.resource.data);
+    }
+
+    match /posts/{postId} {
+      // Anyone can read published posts
+      allow read: if resource.data.published == true || isAdmin();
+      // Only admins can create, update, delete
+      allow create: if isAdmin() && isValidPost(request.resource.data) && request.resource.data.authorId == request.auth.uid;
+      allow update: if isAdmin() && isValidPost(request.resource.data) && request.resource.data.authorId == resource.data.authorId;
+      allow delete: if isAdmin();
+    }
+
+    match /portfolio/{portfolioId} {
+      // Anyone can read portfolio items
+      allow read: if true;
+      // Only admins can create, update, delete
+      allow create: if isAdmin() && isValidPortfolioItem(request.resource.data) && request.resource.data.authorId == request.auth.uid;
+      allow update: if isAdmin() && isValidPortfolioItem(request.resource.data) && request.resource.data.authorId == resource.data.authorId;
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Only admins can create or update users
+      allow create: if isAdmin() && isValidUser(request.resource.data);
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}

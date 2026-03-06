@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A contact form submission from a potential client.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "businessType": { "type": "string" },
+        "problem": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["new", "contacted", "closed"] }
+      },
+      "required": ["name", "email", "businessType", "problem", "createdAt", "status"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A blog post.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "content": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "authorId": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "content", "excerpt", "authorId", "published", "createdAt", "updatedAt"]
+    },
+    "PortfolioItem": {
+      "title": "PortfolioItem",
+      "description": "A case study portfolio item.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "clientProblem": { "type": "string" },
+        "dataSolution": { "type": "string" },
+        "businessImpact": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "clientProblem", "dataSolution", "businessImpact", "imageUrl", "authorId", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile, typically an admin.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Contact form submissions."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Blog posts."
+    },
+    "/portfolio/{portfolioId}": {
+      "schema": { "$ref": "#/entities/PortfolioItem" },
+      "description": "Portfolio case studies."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles."
+    }
+  }
+}

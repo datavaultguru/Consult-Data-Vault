@@ -1,0 +1,7 @@
+{
+  "name": "Remix: Data Analytics \u0026 BI Consulting",
+  "description": "Premium portfolio and consulting website for a Data Analytics \u0026 Business Intelligence Consultant.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
